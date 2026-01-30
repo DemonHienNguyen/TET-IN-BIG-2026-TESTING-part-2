@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI, Modality, LiveServerMessage } from '@google/genai';
-import { PhoneOff, PhoneCall, Loader2, AlertCircle, Volume2, Mic, MicOff } from 'lucide-react';
+import { PhoneOff, PhoneCall, Loader2, AlertCircle, Volume2, Mic, Settings } from 'lucide-react';
 
 function encode(bytes: Uint8Array) {
   let binary = '';
@@ -38,54 +38,31 @@ async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: 
 const ThayDoAvatar: React.FC<{ isTalking: boolean; isActive: boolean; audioLevel: number }> = ({ isTalking, isActive, audioLevel }) => {
   return (
     <div className="relative w-72 h-72 mx-auto mb-10">
-      {/* Aura rực rỡ xung quanh */}
       <div className={`absolute inset-0 rounded-full transition-all duration-700 ${isActive ? 'bg-yellow-500/10 blur-3xl scale-125 opacity-100' : 'opacity-0'}`} />
-      
-      {/* Vòng sóng âm thanh */}
       {isTalking && (
         <div 
           className="absolute inset-0 rounded-full border-2 border-yellow-400/30 animate-ping"
           style={{ transform: `scale(${1 + audioLevel * 2})` }}
         />
       )}
-
-      {/* Frame chính của Ông Đồ */}
       <div className={`relative z-10 w-full h-full bg-[#fefce8] rounded-full border-8 border-red-800 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden flex items-center justify-center transition-transform duration-500 ${isActive ? 'scale-105' : 'scale-100'}`}>
         <svg viewBox="0 0 200 200" className="w-full h-full">
-          {/* Nền giấy sần */}
           <rect width="200" height="200" fill="#fefce8" />
           <path d="M0 0 L200 200 M200 0 L0 200" stroke="#f0e68c" strokeWidth="0.5" opacity="0.3" />
-
-          {/* Nhân vật */}
           <g transform="translate(0, 10)">
-            {/* Áo dài đỏ */}
             <path d="M40 190 Q100 140 160 190 L180 200 L20 200 Z" fill="#991b1b" stroke="#7f1d1d" strokeWidth="2" />
             <path d="M100 145 L100 200" stroke="#fbbf24" strokeWidth="1" strokeDasharray="4 2" />
-
-            {/* Cổ áo */}
             <path d="M75 110 Q100 130 125 110" fill="none" stroke="#fbbf24" strokeWidth="3" />
-
-            {/* Khuôn mặt */}
             <circle cx="100" cy="85" r="45" fill="#fde68a" stroke="#d97706" strokeWidth="1" />
-            
-            {/* Khăn đóng */}
             <path d="M55 75 Q100 35 145 75 L140 85 Q100 60 60 85 Z" fill="#1a1a1a" />
             <path d="M65 65 Q100 45 135 65" stroke="#fbbf24" strokeWidth="1.5" fill="none" opacity="0.6" />
-
-            {/* Mắt */}
             <g className={isActive ? 'animate-blink' : ''}>
               <ellipse cx="82" cy="90" rx="4" ry="2" fill="#333" />
               <ellipse cx="118" cy="90" rx="4" ry="2" fill="#333" />
             </g>
-
-            {/* Lông mày trắng */}
             <path d="M72 82 Q82 75 92 82" stroke="white" strokeWidth="3" fill="none" />
             <path d="M108 82 Q118 75 128 82" stroke="white" strokeWidth="3" fill="none" />
-
-            {/* Mũi */}
             <path d="M97 95 Q100 102 103 95" stroke="#d97706" strokeWidth="1.5" fill="none" />
-
-            {/* Miệng nói chuyện */}
             <path 
               d={isTalking ? `M88 110 Q100 ${110 + audioLevel * 50} 112 110` : "M92 112 Q100 115 108 112"} 
               stroke="#991b1b" 
@@ -93,8 +70,6 @@ const ThayDoAvatar: React.FC<{ isTalking: boolean; isActive: boolean; audioLevel
               fill={isTalking ? "#7f1d1d" : "none"}
               className="transition-all duration-75"
             />
-
-            {/* Râu dài màu trắng */}
             <path 
               d={`M80 115 Q100 ${175 + audioLevel * 20} 120 115`} 
               fill="white" 
@@ -104,8 +79,6 @@ const ThayDoAvatar: React.FC<{ isTalking: boolean; isActive: boolean; audioLevel
           </g>
         </svg>
       </div>
-
-      {/* Mic status indicator */}
       {isActive && (
         <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20 flex gap-2">
            <div className="bg-red-800 px-4 py-1 rounded-full border border-yellow-500/50 shadow-xl flex items-center gap-2">
@@ -124,6 +97,7 @@ const LiveCallSection: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [audioLevel, setAudioLevel] = useState(0);
+  const [isApiKeyMissing, setIsApiKeyMissing] = useState(false);
   
   const aiRef = useRef<any>(null);
   const sessionRef = useRef<any>(null);
@@ -133,7 +107,19 @@ const LiveCallSection: React.FC = () => {
   const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
   const analyserRef = useRef<AnalyserNode | null>(null);
 
+  useEffect(() => {
+    // Check if API Key exists on component mount
+    if (!process.env.API_KEY || process.env.API_KEY.trim() === '') {
+      setIsApiKeyMissing(true);
+    }
+  }, []);
+
   const startCall = async () => {
+    if (isApiKeyMissing) {
+      setError("Thiếu API Key. Hãy thiết lập biến API_KEY trong Vercel Settings.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -147,7 +133,6 @@ const LiveCallSection: React.FC = () => {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
       outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
       
-      // Setup Analyzer for visualization
       analyserRef.current = outputAudioContextRef.current.createAnalyser();
       analyserRef.current.fftSize = 256;
       const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
@@ -244,7 +229,25 @@ const LiveCallSection: React.FC = () => {
         <p className="text-red-200 opacity-80 italic">Đàm đạo cùng Ông Đồ thông thái qua Live API</p>
       </div>
 
-      {error && (
+      {isApiKeyMissing && (
+        <div className="bg-yellow-500/10 border border-yellow-500/30 p-6 rounded-3xl max-w-md mx-auto space-y-4 animate-fadeIn">
+          <div className="flex items-center justify-center gap-3 text-yellow-400">
+            <Settings className="animate-spin-slow" />
+            <span className="font-bold uppercase tracking-wider">Cài đặt API Key</span>
+          </div>
+          <p className="text-sm text-red-100/80 leading-relaxed">
+            Hệ thống không tìm thấy API Key. Để kích hoạt tính năng Gọi AI, bạn cần:
+          </p>
+          <ol className="text-xs text-left text-yellow-200/70 space-y-2 list-decimal pl-5">
+            <li>Vào Vercel Dashboard của dự án này.</li>
+            <li>Chọn <b>Settings</b> -> <b>Environment Variables</b>.</li>
+            <li>Thêm biến <b>API_KEY</b> với mã từ Google AI Studio.</li>
+            <li><b>Redeploy</b> lại ứng dụng để áp dụng thay đổi.</li>
+          </ol>
+        </div>
+      )}
+
+      {error && !isApiKeyMissing && (
         <div className="bg-red-500/10 border border-red-500/50 p-4 rounded-2xl flex items-center justify-center gap-3 text-red-200 max-w-md mx-auto animate-shake">
           <AlertCircle size={20} className="shrink-0" />
           <span className="text-sm font-medium">{error}</span>
@@ -255,8 +258,8 @@ const LiveCallSection: React.FC = () => {
         {!isActive ? (
           <button
             onClick={startCall}
-            disabled={loading}
-            className="group relative bg-gradient-to-b from-yellow-400 to-yellow-600 text-red-950 px-12 py-6 rounded-full font-black text-2xl shadow-[0_15px_40px_rgba(234,179,8,0.4)] transition-all hover:scale-105 active:scale-95 flex items-center gap-4 border-b-4 border-yellow-700 disabled:opacity-50"
+            disabled={loading || isApiKeyMissing}
+            className="group relative bg-gradient-to-b from-yellow-400 to-yellow-600 text-red-950 px-12 py-6 rounded-full font-black text-2xl shadow-[0_15px_40px_rgba(234,179,8,0.4)] transition-all hover:scale-105 active:scale-95 flex items-center gap-4 border-b-4 border-yellow-700 disabled:opacity-30 disabled:grayscale"
           >
             {loading ? <Loader2 className="animate-spin" /> : <PhoneCall className="animate-pulse" />}
             {loading ? "ĐANG KẾT NỐI..." : "NHẤN ĐỂ GỌI ÔNG ĐỒ"}
@@ -303,6 +306,7 @@ const LiveCallSection: React.FC = () => {
           75% { transform: translateX(5px); }
         }
         .animate-shake { animation: shake 0.5s ease-in-out; }
+        .animate-spin-slow { animation: spin 4s linear infinite; }
       `}</style>
     </div>
   );
