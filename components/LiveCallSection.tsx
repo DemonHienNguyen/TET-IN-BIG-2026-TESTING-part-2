@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI, Modality, LiveServerMessage } from '@google/genai';
-import { PhoneOff, PhoneCall, Loader2, AlertCircle, Volume2, Mic, Settings } from 'lucide-react';
+import { PhoneOff, PhoneCall, Loader2, AlertCircle, Volume2, Mic, Settings, Copy, Check } from 'lucide-react';
 
 function encode(bytes: Uint8Array) {
   let binary = '';
@@ -98,6 +98,7 @@ const LiveCallSection: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [audioLevel, setAudioLevel] = useState(0);
   const [isApiKeyMissing, setIsApiKeyMissing] = useState(false);
+  const [copied, setCopied] = useState(false);
   
   const aiRef = useRef<any>(null);
   const sessionRef = useRef<any>(null);
@@ -109,14 +110,20 @@ const LiveCallSection: React.FC = () => {
 
   useEffect(() => {
     // Check if API Key exists on component mount
-    if (!process.env.API_KEY || process.env.API_KEY.trim() === '') {
+    if (!process.env.API_KEY || process.env.API_KEY.trim() === '' || process.env.API_KEY === 'undefined') {
       setIsApiKeyMissing(true);
     }
   }, []);
 
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText('API_KEY');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const startCall = async () => {
     if (isApiKeyMissing) {
-      setError("Thiếu API Key. Hãy thiết lập biến API_KEY trong Vercel Settings.");
+      setError("Thiếu API Key. Hãy cấu hình biến API_KEY trong Vercel.");
       return;
     }
 
@@ -230,20 +237,37 @@ const LiveCallSection: React.FC = () => {
       </div>
 
       {isApiKeyMissing && (
-        <div className="bg-yellow-500/10 border border-yellow-500/30 p-6 rounded-3xl max-w-md mx-auto space-y-4 animate-fadeIn">
+        <div className="bg-yellow-500/10 border border-yellow-500/30 p-8 rounded-[2.5rem] max-w-md mx-auto space-y-6 animate-fadeIn shadow-2xl">
           <div className="flex items-center justify-center gap-3 text-yellow-400">
-            <Settings className="animate-spin-slow" />
-            <span className="font-bold uppercase tracking-wider">Cài đặt API Key</span>
+            <Settings className="animate-spin-slow" size={28} />
+            <span className="font-black uppercase tracking-[0.2em] text-sm">Cấu Hình Vercel</span>
           </div>
-          <p className="text-sm text-red-100/80 leading-relaxed">
-            Hệ thống không tìm thấy API Key. Để kích hoạt tính năng Gọi AI, bạn cần:
-          </p>
-          <ol className="text-xs text-left text-yellow-200/70 space-y-2 list-decimal pl-5">
-            <li>Vào Vercel Dashboard của dự án này.</li>
-            <li>Chọn <b>Settings</b> -> <b>Environment Variables</b>.</li>
-            <li>Thêm biến <b>API_KEY</b> với mã từ Google AI Studio.</li>
-            <li><b>Redeploy</b> lại ứng dụng để áp dụng thay đổi.</li>
-          </ol>
+          
+          <div className="space-y-4 text-left">
+            <div className="bg-red-950/40 p-4 rounded-2xl border border-yellow-500/10">
+              <p className="text-xs text-yellow-500/70 uppercase font-black mb-2 tracking-widest">Bước 1: Nhập Key</p>
+              <div className="flex items-center justify-between bg-black/40 px-4 py-2 rounded-xl border border-white/5">
+                <code className="text-yellow-400 font-mono text-sm">API_KEY</code>
+                <button onClick={copyToClipboard} className="text-yellow-500/50 hover:text-yellow-400 transition-colors">
+                  {copied ? <Check size={16} /> : <Copy size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-red-950/40 p-4 rounded-2xl border border-yellow-500/10">
+              <p className="text-xs text-yellow-500/70 uppercase font-black mb-2 tracking-widest">Bước 2: Nhập Value</p>
+              <p className="text-[10px] text-red-200 leading-relaxed italic">
+                Dán mã <code className="text-white bg-red-800 px-1 rounded">AIzaSy...</code> từ Google AI Studio vào ô Value.
+              </p>
+            </div>
+
+            <div className="bg-red-950/40 p-4 rounded-2xl border border-yellow-500/10">
+              <p className="text-xs text-yellow-500/70 uppercase font-black mb-2 tracking-widest">Bước 3: Redeploy</p>
+              <p className="text-[10px] text-red-200 leading-relaxed italic">
+                Sau khi Save, bạn <b>PHẢI</b> nhấn "Redeploy" trong tab Deployments để áp dụng.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
