@@ -1,0 +1,9 @@
+{
+  "name": "Tết Bính Ngọ 2026 - Xuân Vạn Phúc",
+  "description": "Ứng dụng đa năng đón Tết Bính Ngọ 2026 với AI: Gieo quẻ, Xông đất, Chợ hoa, Thiệp AI và Gọi điện trực tuyến.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
